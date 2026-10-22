@@ -4,6 +4,9 @@ on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
+  schedule:
+    # Läuft jeden Tag um 04:00 Uhr UTC automatisch
+    - cron: '0 2 * * *'
 
 jobs:
   build:
@@ -12,13 +15,25 @@ jobs:
       - name: Code auschecken
         uses: actions/checkout@v4.2.2
 
+      # NEU: Prüft, ob das PHP Base Image neuer ist als dein Image auf GHCR
+      - name: Base Image Update prüfen
+        id: check
+        uses: lucacome/docker-image-update-checker@v3
+        with:
+          base-image: 'php:8.5-fpm-alpine'
+          image: 'ghcr.io/ricosweb/custom_php8.5_image:latest'
+
       - name: QEMU einrichten
+        # Wird nur ausgeführt bei Push, manuellem Start ODER wenn ein Update da ist
+        if: github.event_name != 'schedule' || steps.check.outputs.needs-updating == 'true'
         uses: docker/setup-qemu-action@v3.6.0
 
       - name: Buildx einrichten
+        if: github.event_name != 'schedule' || steps.check.outputs.needs-updating == 'true'
         uses: docker/setup-buildx-action@v3.10.0
 
       - name: Bei GHCR anmelden
+        if: github.event_name != 'schedule' || steps.check.outputs.needs-updating == 'true'
         uses: docker/login-action@v3.3.0
         with:
           registry: ghcr.io
@@ -26,6 +41,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Image bauen & pushen
+        if: github.event_name != 'schedule' || steps.check.outputs.needs-updating == 'true'
         uses: docker/build-push-action@v6.15.0
         with:
           context: .
