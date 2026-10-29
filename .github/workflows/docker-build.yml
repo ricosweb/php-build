@@ -63,12 +63,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Benachrichtigung nach erfolgreichem Build via curl
       - name: ntfy Benachrichtigung senden
         if: success() && (github.event_name != 'schedule' || steps.check.outputs.needs-updating == 'true')
-        uses: curl/curl-action@v5
-        with:
-          args: >
-            -d "Docker Image 'custom_php8.5_image:latest' wurde erfolgreich gebaut und auf GHCR gepusht!"
-            -H "Title: Docker Build Erfolgreich"
-            -H "Tags: package,rocket"
+        run: |
+          curl \
+            -d "Neues PHP 8.5 Image gebaut und auf GHCR gepusht!" \
+            -H "Title: GHCR Build Erfolgreich" \
+            -H "Tags: package,rocket" \
             https://ntfy.sh/JMDikA6mwmjpyfm7
